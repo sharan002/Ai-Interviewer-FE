@@ -1,4 +1,5 @@
 const BASE = import.meta.env.VITE_API_BASE_URL || 'https://mockinterview.appincoimbatore.com/mockinterviewbe';
+// const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005';
 
 async function parse(res) {
   if (!res.ok) {
