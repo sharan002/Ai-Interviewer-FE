@@ -5,6 +5,7 @@ import {
 import Avatar from './Avatar.jsx';
 import { api } from '../api.js';
 import { TtsPlayer } from '../lib/speaker.js';
+import { SimliAvatar } from '../lib/simliAvatar.js';
 import { VoiceListener } from '../lib/listener.js';
 import { DIFFICULTIES, LEVELS, formatTime, labelOf } from '../constants.js';
 
@@ -30,6 +31,7 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [fatal, setFatal] = useState(null); // { message, retry }
   const [draft, setDraft] = useState('');
+  const [simliOn, setSimliOn] = useState(false); // true while the Simli face replaces the SVG avatar
 
   // Everything the audio/IO callbacks touch lives in refs so they never go stale.
   const statusRef = useRef('connecting');
@@ -49,6 +51,9 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
   const selfTileRef = useRef(null);
   const chatEndRef = useRef(null);
   const toastTimer = useRef(null);
+  const simliRef = useRef(null);
+  const simliVideoRef = useRef(null);
+  const simliAudioRef = useRef(null);
 
   const hasVideo = (media.stream?.getVideoTracks().length ?? 0) > 0;
   const hasMic = (media.stream?.getAudioTracks().length ?? 0) > 0;
@@ -207,6 +212,7 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
     finishingRef.current = true;
     setConfirmEnd(false);
     playerRef.current?.stop();
+    simliRef.current?.stop(); // stop the billed session as soon as the interview is over
     listenerRef.current?.stop();
     turnRef.current += 1;
     setStatusBoth('wrapping');
@@ -222,6 +228,39 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
     }
   }
 
+  // ---- optional Simli video avatar ------------------------------------------------------
+
+  /** Connects the Simli face. Never throws: on any failure the SVG avatar + voice carry on. */
+  async function connectSimli(player) {
+    let avatar = null;
+    try {
+      const c = await api.simliConfig();
+      if (!c.enabled || !simliVideoRef.current || !simliAudioRef.current) return;
+      const { sessionToken } = await api.simliSession(setup.leadToken, persona.id);
+      avatar = new SimliAvatar(simliVideoRef.current, simliAudioRef.current);
+      simliRef.current = avatar;
+      await avatar.start(sessionToken, (why) => {
+        // Lost mid-interview: hand speech back to the built-in avatar.
+        if (player.sink === avatar) player.sink = null;
+        if (mountedRef.current) {
+          setSimliOn(false);
+          notify(`Video interviewer disconnected (${why}). Using the built-in avatar.`);
+        }
+      });
+      if (!mountedRef.current) {
+        avatar.stop();
+        return;
+      }
+      player.sink = avatar;
+      setSimliOn(true);
+    } catch (e) {
+      console.warn('Simli unavailable:', e);
+      avatar?.stop();
+      simliRef.current = null;
+      if (mountedRef.current) notify(`Video interviewer unavailable (${e.message || e}). Using the built-in avatar.`);
+    }
+  }
+
   // ---- lifecycle ----------------------------------------------------------------------
 
   useEffect(() => {
@@ -233,6 +272,8 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
 
     (async () => {
       await player.unlock();
+      // Give the video face a few seconds to connect so the first question already uses it.
+      await Promise.race([connectSimli(player), new Promise((r) => setTimeout(r, 10000))]);
       if (hasMic) {
         try {
           const l = new VoiceListener(media.stream, {
@@ -270,6 +311,7 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
       clearTimeout(toastTimer.current);
       window.removeEventListener('beforeunload', warn);
       player.destroy();
+      simliRef.current?.stop();
       listenerRef.current?.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -366,7 +408,9 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
           <div className="tiles">
             <div className={`tile tile-ai ${status === 'speaking' ? 'is-speaking' : ''}`}>
               <div className="tile-avatar">
-                <Avatar persona={persona} levelRef={playerRef.current?.level} state={interviewerState} />
+                {!simliOn && <Avatar persona={persona} levelRef={playerRef.current?.level} state={interviewerState} />}
+                <video ref={simliVideoRef} className={`simli-video ${simliOn ? 'on' : ''}`} autoPlay playsInline muted />
+                <audio ref={simliAudioRef} autoPlay />
               </div>
               <div className="tile-status">
                 {(status === 'connecting' || status === 'thinking' || status === 'transcribing' || status === 'wrapping') && <Loader2 size={14} className="spin" />}

@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { toSimliPcm } from './simliAvatar.js';
 
 /** Splits text into sentence-sized pieces; the first is kept short so audio starts sooner. */
 export function chunkText(text, firstMax = 150, max = 280) {
@@ -37,6 +38,8 @@ export class TtsPlayer {
     this.currentSrc = null;
     this.onFallback = null; // (errorMessage) => void, called once per player
     this.fallbackNotified = false;
+    this.sink = null; // optional SimliAvatar: when ready it speaks the audio instead of this player
+    this.sinkWait = null; // { timer, resolve } for the clip the sink is currently speaking
   }
 
   async unlock() {
@@ -60,6 +63,12 @@ export class TtsPlayer {
       /* not started */
     }
     this.currentSrc = null;
+    if (this.sinkWait) {
+      clearTimeout(this.sinkWait.timer);
+      this.sinkWait.resolve();
+      this.sinkWait = null;
+      this.sink?.clear();
+    }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
@@ -100,7 +109,31 @@ export class TtsPlayer {
     }
   }
 
-  playBuffer(buffer) {
+  async playBuffer(buffer) {
+    if (this.sink?.ready) {
+      try {
+        const pcm = await toSimliPcm(buffer);
+        if (this.sink?.ready) return this.playThroughSink(pcm, buffer.duration);
+      } catch {
+        /* fall through to local playback */
+      }
+    }
+    return this.playLocal(buffer);
+  }
+
+  /** Sends audio to the Simli avatar and waits roughly as long as it takes to speak it. */
+  playThroughSink(pcm, seconds) {
+    return new Promise((resolve) => {
+      this.sink.send(pcm);
+      const timer = setTimeout(() => {
+        this.sinkWait = null;
+        resolve();
+      }, seconds * 1000 + 150);
+      this.sinkWait = { timer, resolve };
+    });
+  }
+
+  playLocal(buffer) {
     return new Promise((resolve) => {
       const src = this.ctx.createBufferSource();
       src.buffer = buffer;

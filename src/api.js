@@ -37,6 +37,9 @@ export const api = {
     return transcript;
   },
 
+  simliConfig: () => fetch('/api/simli/config').then(parse),
+  simliSession: (leadToken, interviewer) => post('/api/simli/session', { leadToken, interviewer }),
+
   async tts(text, speaker) {
     const res = await fetch('/api/tts', {
       method: 'POST',
