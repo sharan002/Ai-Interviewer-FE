@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { api } from '../api.js';
+import { COURSES } from '../constants.js';
 
 export default function Register({ onDone }) {
   const [form, setForm] = useState({ name: '', mobile: '', email: '', domain: '' });
@@ -54,7 +55,10 @@ export default function Register({ onDone }) {
           </label>
           <label className="field">
             <span>Interview domain</span>
-            <input value={form.domain} onChange={set('domain')} placeholder="e.g. Full Stack Development, Data Science" maxLength={120} required />
+            <select value={form.domain} onChange={set('domain')} required>
+              <option value="" disabled>Select your course</option>
+              {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </label>
 
           {error && (

@@ -100,6 +100,8 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .field em { font-style: normal; font-weight: 400; font-size: 13px; }
 .field input { border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 14px; background: var(--surface); outline: none; }
 .field textarea { border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 14px; background: var(--surface); outline: none; font: inherit; resize: vertical; }
+.field select { border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 14px; background: var(--surface); outline: none; font: inherit; }
+.field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15); }
 .field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15); }
 .container.narrow { max-width: 520px; }
 .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15); }

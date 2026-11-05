@@ -1,3 +1,9 @@
+export const COURSES = [
+  'Python Fullstack with AI', 'Java Fullstack with AI', 'MERN Stack with AI', 'Data Science', 'Data Analytics',
+  'Digital Marketing', 'College Internship', 'Bot Kovai', 'React JS', 'SEO', 'Meta ads', 'Gen AI', 'AI Foundations',
+  'IT Recruitment with AI', 'US IT Recruitment with AI', 'Devops', 'AWS', 'UIUX', 'Cybersecurity', 'AI Automation Engineer',
+];
+
 export const LEVELS = [
   { id: 'fresher', label: 'Fresher', hint: '0–1 yrs' },
   { id: 'junior', label: 'Junior', hint: '1–3 yrs' },

@@ -1,9 +1,21 @@
-const BASE = import.meta.env.VITE_API_BASE_URL || 'https://mockinterview.appincoimbatore.com/mockinterviewbe';
-// const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005';
+// const BASE = import.meta.env.VITE_API_BASE_URL || 'https://mockinterview.appincoimbatore.com/mockinterviewbe';
+const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8005';
+
+// Browser fetch() rejects with a bare "Failed to fetch" when the server is unreachable; make that readable and log it.
+const nativeFetch = globalThis.fetch.bind(globalThis);
+async function fetch(url, init) {
+  try {
+    return await nativeFetch(url, init);
+  } catch (err) {
+    console.error(`[api] ${init?.method || 'GET'} ${url} failed:`, err);
+    throw new Error(`Cannot reach the server (${BASE}). Check your connection and that the backend is running, then try again.`);
+  }
+}
 
 async function parse(res) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (!body.error) console.error(`[api] ${res.url} responded ${res.status} with no error message`);
     const err = new Error(body.error || `Request failed (${res.status})`);
     err.status = res.status;
     throw err;
