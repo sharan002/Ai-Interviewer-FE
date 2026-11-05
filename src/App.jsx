@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Register from './components/Register.jsx';
 import Setup from './components/Setup.jsx';
 import Lobby from './components/Lobby.jsx';
 import Meeting from './components/Meeting.jsx';
@@ -17,7 +18,8 @@ const loadLastReport = () => {
 const stopStream = (media) => media?.stream?.getTracks().forEach((t) => t.stop());
 
 export default function App() {
-  const [stage, setStage] = useState('setup'); // setup | lobby | meeting | report
+  const [stage, setStage] = useState('register'); // register | setup | lobby | meeting | report
+  const [lead, setLead] = useState(null); // set once the registration form is filled
   const [setup, setSetup] = useState(null);
   const [media, setMedia] = useState(null);
   const [result, setResult] = useState(null);
@@ -31,8 +33,18 @@ export default function App() {
 
   return (
     <>
-      {stage === 'setup' && (
+      {stage === 'register' && (
+        <Register
+          onDone={(l) => {
+            setLead(l);
+            setStage('setup');
+          }}
+        />
+      )}
+
+      {stage === 'setup' && lead && (
         <Setup
+          lead={lead}
           initial={setup}
           lastReport={lastReport}
           onViewLastReport={() => {
@@ -40,7 +52,7 @@ export default function App() {
             setStage('report');
           }}
           onStart={(cfg) => {
-            setSetup(cfg);
+            setSetup({ ...cfg, leadToken: lead.leadToken });
             setStage('lobby');
           }}
         />
@@ -83,7 +95,10 @@ export default function App() {
         <Report
           result={result}
           onNew={() => {
-            setStage('setup');
+            // One registration per candidate: a new attempt means filling the form again.
+            setLead(null);
+            setSetup(null);
+            setStage('register');
           }}
         />
       )}

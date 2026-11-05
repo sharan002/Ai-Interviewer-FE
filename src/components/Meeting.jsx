@@ -75,9 +75,11 @@ export default function Meeting({ setup, media, onFinish, onLeave }) {
     setStatusBoth('connecting');
     try {
       const r = await api.startInterview({
+        leadToken: setup.leadToken,
         resumeToken: setup.resumeToken,
         profile: setup.profile,
         role: setup.role,
+        jobDescription: setup.jobDescription,
         level: setup.level,
         difficulty: setup.difficulty,
         type: setup.type,

@@ -4,7 +4,7 @@ import Avatar from './Avatar.jsx';
 import { api } from '../api.js';
 import { DIFFICULTIES, INTERVIEWERS, LENGTHS, LEVELS, TYPES } from '../constants.js';
 
-export default function Setup({ initial, lastReport, onStart, onViewLastReport }) {
+export default function Setup({ lead, initial, lastReport, onStart, onViewLastReport }) {
   const [health, setHealth] = useState(null);
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -14,6 +14,9 @@ export default function Setup({ initial, lastReport, onStart, onViewLastReport }
 
   const [role, setRole] = useState(initial?.role ?? '');
   const [customRole, setCustomRole] = useState('');
+  const [roleSource, setRoleSource] = useState(initial?.jobDescription ? 'jd' : 'ai'); // ai | jd
+  const [jobDescription, setJobDescription] = useState(initial?.jobDescription ?? '');
+  const [jdTitle, setJdTitle] = useState(initial?.jobDescription ? initial.role : (lead?.domain ?? ''));
   const [level, setLevel] = useState(initial?.level ?? 'mid');
   const [difficulty, setDifficulty] = useState(initial?.difficulty ?? 'medium');
   const [type, setType] = useState(initial?.type ?? 'mixed');
@@ -45,14 +48,16 @@ export default function Setup({ initial, lastReport, onStart, onViewLastReport }
     }
   }
 
-  const finalRole = (customRole.trim() || role).trim();
-  const canStart = analysis && finalRole && !analyzing;
+  const useJd = roleSource === 'jd';
+  const finalRole = (useJd ? jdTitle.trim() : customRole.trim() || role).trim();
+  const canStart = analysis && finalRole && !analyzing && (!useJd || jobDescription.trim().length >= 30);
 
   function start() {
     onStart({
       profile: analysis.profile,
       resumeToken: analysis.resumeToken,
       role: finalRole,
+      jobDescription: useJd ? jobDescription.trim() : '',
       level,
       difficulty,
       type,
@@ -137,7 +142,23 @@ export default function Setup({ initial, lastReport, onStart, onViewLastReport }
             {/* 2. Role */}
             <section className="card">
               <div className="step"><span>2</span> Choose the role to practise for</div>
-              <div className="role-grid">
+              <div className="seg">
+                <button className={!useJd ? 'on' : ''} onClick={() => setRoleSource('ai')}>AI-suggested roles<small>Based on your resume</small></button>
+                <button className={useJd ? 'on' : ''} onClick={() => setRoleSource('jd')}>Add job description<small>Paste the job you are targeting</small></button>
+              </div>
+              {useJd && (
+                <>
+                  <label className="field">
+                    <span>Job title</span>
+                    <input value={jdTitle} onChange={(e) => setJdTitle(e.target.value)} placeholder="e.g. Backend Developer" maxLength={120} />
+                  </label>
+                  <label className="field">
+                    <span>Job description <em className="muted">(at least a few lines)</em></span>
+                    <textarea value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={8} maxLength={6000} placeholder="Paste the responsibilities and requirements here..." />
+                  </label>
+                </>
+              )}
+              {!useJd && <><div className="role-grid">
                 {profile.roles.map((r) => (
                   <button
                     key={r.title}
@@ -159,7 +180,7 @@ export default function Setup({ initial, lastReport, onStart, onViewLastReport }
               <label className="field">
                 <span>Or type a different role</span>
                 <input value={customRole} onChange={(e) => setCustomRole(e.target.value)} placeholder="e.g. Data Analyst at a fintech startup" maxLength={120} />
-              </label>
+              </label></>}
             </section>
 
             {/* 3. Level, difficulty */}

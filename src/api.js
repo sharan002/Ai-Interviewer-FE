@@ -1,7 +1,9 @@
 async function parse(res) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed (${res.status})`);
+    const err = new Error(body.error || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
   }
   return res.json();
 }
@@ -15,6 +17,8 @@ const post = (url, body) =>
 
 export const api = {
   health: () => fetch('/api/health').then(parse),
+
+  registerLead: (payload) => post('/api/lead/register', payload),
 
   analyzeResume(file) {
     const fd = new FormData();
