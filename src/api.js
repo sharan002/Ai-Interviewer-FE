@@ -1,3 +1,5 @@
+const BASE = import.meta.env.VITE_API_BASE_URL || 'https://mockinterview.appincoimbatore.com/mockinterviewbe';
+
 async function parse(res) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -16,32 +18,32 @@ const post = (url, body) =>
   }).then(parse);
 
 export const api = {
-  health: () => fetch('/api/health').then(parse),
+  health: () => fetch(`${BASE}/api/health`).then(parse),
 
-  registerLead: (payload) => post('/api/lead/register', payload),
+  registerLead: (payload) => post(`${BASE}/api/lead/register`, payload),
 
   analyzeResume(file) {
     const fd = new FormData();
     fd.append('resume', file);
-    return fetch('/api/resume/analyze', { method: 'POST', body: fd }).then(parse);
+    return fetch(`${BASE}/api/resume/analyze`, { method: 'POST', body: fd }).then(parse);
   },
 
-  startInterview: (payload) => post('/api/interview/start', payload),
-  answer: (id, payload) => post(`/api/interview/${id}/answer`, payload),
-  end: (id) => post(`/api/interview/${id}/end`, {}),
+  startInterview: (payload) => post(`${BASE}/api/interview/start`, payload),
+  answer: (id, payload) => post(`${BASE}/api/interview/${id}/answer`, payload),
+  end: (id) => post(`${BASE}/api/interview/${id}/end`, {}),
 
   async transcribe(wavBlob) {
     const fd = new FormData();
     fd.append('audio', wavBlob, 'speech.wav');
-    const { transcript } = await fetch('/api/stt', { method: 'POST', body: fd }).then(parse);
+    const { transcript } = await fetch(`${BASE}/api/stt`, { method: 'POST', body: fd }).then(parse);
     return transcript;
   },
 
-  simliConfig: () => fetch('/api/simli/config').then(parse),
-  simliSession: (leadToken, interviewer) => post('/api/simli/session', { leadToken, interviewer }),
+  simliConfig: () => fetch(`${BASE}/api/simli/config`).then(parse),
+  simliSession: (leadToken, interviewer) => post(`${BASE}/api/simli/session`, { leadToken, interviewer }),
 
   async tts(text, speaker) {
-    const res = await fetch('/api/tts', {
+    const res = await fetch(`${BASE}/api/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, speaker }),
