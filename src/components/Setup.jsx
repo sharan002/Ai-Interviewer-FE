@@ -4,7 +4,7 @@ import Avatar from './Avatar.jsx';
 import { api } from '../api.js';
 import { DIFFICULTIES, INTERVIEWERS, LENGTHS, LEVELS, TYPES } from '../constants.js';
 
-export default function Setup({ lead, initial, lastReport, onStart, onViewLastReport }) {
+export default function Setup({ lead, initial, jobPrefill, lastReport, onStart, onViewLastReport }) {
   const [health, setHealth] = useState(null);
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -14,9 +14,9 @@ export default function Setup({ lead, initial, lastReport, onStart, onViewLastRe
 
   const [role, setRole] = useState(initial?.role ?? '');
   const [customRole, setCustomRole] = useState('');
-  const [roleSource, setRoleSource] = useState(initial?.jobDescription ? 'jd' : 'ai'); // ai | jd
-  const [jobDescription, setJobDescription] = useState(initial?.jobDescription ?? '');
-  const [jdTitle, setJdTitle] = useState(initial?.jobDescription ? initial.role : (lead?.domain ?? ''));
+  const [roleSource, setRoleSource] = useState(initial?.jobDescription || jobPrefill?.description ? 'jd' : 'ai'); // ai | jd
+  const [jobDescription, setJobDescription] = useState(initial?.jobDescription ?? jobPrefill?.description ?? '');
+  const [jdTitle, setJdTitle] = useState(initial?.jobDescription ? initial.role : (jobPrefill?.title || lead?.domain || ''));
   const [level, setLevel] = useState(initial?.level ?? 'mid');
   const [difficulty, setDifficulty] = useState(initial?.difficulty ?? 'medium');
   const [type, setType] = useState(initial?.type ?? 'mixed');

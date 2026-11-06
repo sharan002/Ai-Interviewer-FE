@@ -15,11 +15,28 @@ const loadLastReport = () => {
   }
 };
 
+// Launched from the Trainer module's "Attend Mock" button: #mock=<base64url JSON {leadToken, name, title, description}>.
+// The Trainer backend already counted this attempt (max 3) and vouched for the student, so registration is skipped.
+const readLaunch = () => {
+  try {
+    const m = /[#&]mock=([^&]+)/.exec(window.location.hash);
+    if (!m) return null;
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const d = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    if (!d?.leadToken) return null;
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    return d;
+  } catch {
+    return null;
+  }
+};
+
 const stopStream = (media) => media?.stream?.getTracks().forEach((t) => t.stop());
 
 export default function App() {
-  const [stage, setStage] = useState('register'); // register | setup | lobby | meeting | report
-  const [lead, setLead] = useState(null); // set once the registration form is filled
+  const [launch] = useState(readLaunch);
+  const [stage, setStage] = useState(launch ? 'setup' : 'register'); // register | setup | lobby | meeting | report | launched-end
+  const [lead, setLead] = useState(launch ? { leadToken: launch.leadToken, name: launch.name, domain: launch.title || '' } : null); // set once the registration form is filled
   const [setup, setSetup] = useState(null);
   const [media, setMedia] = useState(null);
   const [result, setResult] = useState(null);
@@ -46,6 +63,7 @@ export default function App() {
         <Setup
           lead={lead}
           initial={setup}
+          jobPrefill={launch}
           lastReport={lastReport}
           onViewLastReport={() => {
             setResult(lastReport);
@@ -95,12 +113,29 @@ export default function App() {
         <Report
           result={result}
           onNew={() => {
+            if (launch) {
+              // Each mock attempt is issued by the Trainer module, so go back there for another one.
+              window.close();
+              setStage('launched-end');
+              return;
+            }
             // One registration per candidate: a new attempt means filling the form again.
             setLead(null);
             setSetup(null);
             setStage('register');
           }}
         />
+      )}
+
+      {stage === 'launched-end' && (
+        <div className="page">
+          <div className="container narrow">
+            <div className="card" style={{ textAlign: 'center' }}>
+              <h2>Mock interview finished</h2>
+              <p className="muted">You can close this tab and start another mock from the jobs section of the Trainer module.</p>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
